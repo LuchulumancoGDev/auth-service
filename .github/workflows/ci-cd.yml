@@ -38,6 +38,7 @@ jobs:
       - name: Test
         run: dotnet test AuthApi.sln --configuration Release --no-build
 
+
   docker:
     name: Build & Push Docker Image
     needs: build
@@ -67,6 +68,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
 
+
   deploy-dev:
     name: Deploy Dev
     needs: docker
@@ -74,8 +76,11 @@ jobs:
     if: github.ref == 'refs/heads/dev'
 
     steps:
-      - run: echo "Deploy DEV"
-      - run: docker pull ghcr.io/${{ github.repository }}:dev
+      - name: Deploy DEV
+        run: |
+          echo "Deploy DEV"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+
 
   deploy-staging:
     name: Deploy Staging
@@ -84,8 +89,11 @@ jobs:
     if: github.ref == 'refs/heads/staging'
 
     steps:
-      - run: echo "Deploy STAGING"
-      - run: docker pull ghcr.io/${{ github.repository }}:staging
+      - name: Deploy STAGING
+        run: |
+          echo "Deploy STAGING"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging
+
 
   deploy-prod:
     name: Deploy Production
@@ -94,5 +102,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - run: echo "Deploy PRODUCTION"
-      - run: docker pull ghcr.io/${{ github.repository }}:main
+      - name: Deploy PRODUCTION
+        run: |
+          echo "Deploy PRODUCTION"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
