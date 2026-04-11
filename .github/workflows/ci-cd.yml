@@ -6,49 +6,64 @@ on:
       - dev
       - staging
       - main
+  pull_request:
+    branches:
+      - dev
+      - staging
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0'
+          dotnet-version: '9.0.x'
 
-      - name: Restore
+      - name: Restore Dependencies
         run: dotnet restore
 
-      - name: Build
-        run: dotnet build --no-restore
+      - name: Build Application
+        run: dotnet build --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test --no-build
+      - name: Run Tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
 
   deploy-dev:
+    name: Deploy to Dev
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
 
     steps:
-      - run: echo "Deploying to DEV"
+      - name: Deploy to Development
+        run: echo "Deploying to DEV environment"
 
   deploy-staging:
+    name: Deploy to Staging
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/staging'
 
     steps:
-      - run: echo "Deploying to STAGING"
+      - name: Deploy to Staging
+        run: echo "Deploying to STAGING environment"
 
   deploy-prod:
+    name: Deploy to Production
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - run: echo "Deploying to PRODUCTION"
+      - name: Deploy to Production
+        run: echo "Deploying to PRODUCTION environment"
