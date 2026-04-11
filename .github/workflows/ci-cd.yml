@@ -30,13 +30,13 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore AuthApi.sln
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build AuthApi.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test --configuration Release --no-build
+        run: dotnet test AuthApi.sln --configuration Release --no-build
 
   docker:
     name: Build & Push Docker Image
