@@ -1,10 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# IMPORTANT: file is already inside context root
-COPY . .
+# Copy EVERYTHING into container
+COPY AuthApi/ ./AuthApi/
 
-# DEBUG (we NEED this once)
+WORKDIR /src/AuthApi
+
+# NOW the csproj definitely exists here
 RUN ls -la
 
 RUN dotnet restore AuthApi.csproj
