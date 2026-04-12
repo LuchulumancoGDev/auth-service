@@ -1,15 +1,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy EVERYTHING into container
-COPY AuthApi/ ./AuthApi/
+# COPY EVERYTHING FROM CONTEXT ROOT (AuthApi folder)
+COPY . .
 
-WORKDIR /src/AuthApi
-
-# NOW the csproj definitely exists here
+# DEBUG (optional but useful)
 RUN ls -la
 
+# Restore using correct path (file is in root of context)
 RUN dotnet restore AuthApi.csproj
+
 RUN dotnet publish AuthApi.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
