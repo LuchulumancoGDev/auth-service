@@ -19,7 +19,7 @@ env:
 jobs:
 
 # =========================
-# BUILD & TEST (.NET SOLUTION)
+# BUILD & TEST (.NET)
 # =========================
   build:
     name: Build & Test
@@ -45,7 +45,7 @@ jobs:
 
 
 # =========================
-# DOCKER BUILD & PUSH
+# DOCKER BUILD & PUSH (FIXED CONTEXT)
 # =========================
   docker:
     name: Build & Push Docker Image
@@ -63,17 +63,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # IMPORTANT FIX: build context MUST be repo root for csproj safety
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./AuthApi
+          context: .
           file: ./AuthApi/Dockerfile
           push: true
           platforms: linux/amd64
@@ -83,7 +84,7 @@ jobs:
 
 
 # =========================
-# DEPLOY DEV
+# DEPLOY DEV (FLY.IO)
 # =========================
   deploy-dev:
     name: Deploy Dev
