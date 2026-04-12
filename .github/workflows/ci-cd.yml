@@ -14,30 +14,39 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: luchulumancogdev/auth-service
 
 jobs:
+
+# =============================
+# Build & Test
+# =============================
   build:
     name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore
-        run: dotnet restore
+      - name: Restore Dependencies
+        run: dotnet restore AuthApi.sln
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+      - name: Build Solution
+        run: dotnet build AuthApi.sln --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test --configuration Release --no-build
+      - name: Run Tests
+        run: dotnet test AuthApi.sln --configuration Release --no-build
 
+
+# =============================
+# Docker Build & Push
+# =============================
   docker:
     name: Build & Push Docker Image
     needs: build
@@ -48,50 +57,91 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Login to GHCR
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push Image
+      - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: AuthApi/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
 
+
+# =============================
+# Deploy DEV
+# =============================
   deploy-dev:
     name: Deploy Dev
     needs: docker
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
+    environment: dev
 
     steps:
-      - run: echo "Deploy DEV"
-      - run: docker pull ghcr.io/${{ github.repository }}:dev
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io (Dev)
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+
+# =============================
+# Deploy STAGING
+# =============================
   deploy-staging:
     name: Deploy Staging
     needs: docker
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/staging'
+    environment: staging
 
     steps:
-      - run: echo "Deploy STAGING"
-      - run: docker pull ghcr.io/${{ github.repository }}:staging
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io (Staging)
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+
+# =============================
+# Deploy PRODUCTION
+# =============================
   deploy-prod:
     name: Deploy Production
     needs: docker
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    environment: production
 
     steps:
-      - run: echo "Deploy PRODUCTION"
-      - run: docker pull ghcr.io/${{ github.repository }}:main
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io (Production)
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
