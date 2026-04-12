@@ -18,9 +18,9 @@ env:
 
 jobs:
 
-# ========================================
-# Build & Test
-# ========================================
+# =====================================
+# BUILD & TEST
+# =====================================
   build:
     name: Build & Test
     runs-on: ubuntu-latest
@@ -35,18 +35,18 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore AuthApi.sln
+        run: dotnet restore AuthApi/AuthApi.csproj
 
-      - name: Build Solution
-        run: dotnet build AuthApi.sln --configuration Release --no-restore
+      - name: Build Project
+        run: dotnet build AuthApi/AuthApi.csproj --configuration Release --no-restore
 
       - name: Run Tests
-        run: dotnet test AuthApi.sln --configuration Release --no-build
+        run: dotnet test AuthApi/AuthApi.csproj --configuration Release --no-build
 
 
-# ========================================
-# Docker Build & Push
-# ========================================
+# =====================================
+# DOCKER BUILD & PUSH
+# =====================================
   docker:
     name: Build & Push Docker Image
     needs: build
@@ -70,7 +70,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push Docker Image
+      - name: Build & Push Image
         uses: docker/build-push-action@v5
         with:
           context: ./AuthApi
@@ -82,9 +82,9 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
 
 
-# ========================================
-# Deploy DEV
-# ========================================
+# =====================================
+# DEPLOY DEV
+# =====================================
   deploy-dev:
     name: Deploy Dev
     needs: docker
@@ -99,15 +99,15 @@ jobs:
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy to Fly.io Dev
+      - name: Deploy to Fly.io (Dev)
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
 
-# ========================================
-# Deploy STAGING
-# ========================================
+# =====================================
+# DEPLOY STAGING
+# =====================================
   deploy-staging:
     name: Deploy Staging
     needs: docker
@@ -122,15 +122,15 @@ jobs:
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy to Fly.io Staging
+      - name: Deploy to Fly.io (Staging)
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
 
-# ========================================
-# Deploy PRODUCTION
-# ========================================
+# =====================================
+# DEPLOY PRODUCTION
+# =====================================
   deploy-prod:
     name: Deploy Production
     needs: docker
@@ -145,7 +145,7 @@ jobs:
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy to Fly.io Production
+      - name: Deploy to Fly.io (Production)
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
