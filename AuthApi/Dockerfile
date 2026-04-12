@@ -1,16 +1,20 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy everything inside AuthApi context
-COPY . .
+# Copy ONLY csproj first (forces correct path resolution)
+COPY AuthApi.csproj ./
 
-# Debug (important for CI visibility)
+# Debug step (VERY IMPORTANT)
 RUN ls -la
 
-# Restore using explicit project path
-RUN dotnet restore AuthApi.csproj
+# Restore
+RUN dotnet restore ./AuthApi.csproj
 
-RUN dotnet publish AuthApi.csproj -c Release -o /app/publish
+# Copy everything AFTER restore
+COPY . .
+
+# Publish
+RUN dotnet publish ./AuthApi.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
