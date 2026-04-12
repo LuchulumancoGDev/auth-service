@@ -19,28 +19,29 @@ env:
 jobs:
 
 # =========================
-# BUILD & TEST
+# BUILD & TEST (.NET Solution)
 # =========================
   build:
     name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore
-        run: dotnet restore AuthApi/AuthApi.csproj
+      - name: Restore Solution
+        run: dotnet restore AuthApi.sln
 
-      - name: Build
-        run: dotnet build AuthApi/AuthApi.csproj --configuration Release --no-restore
+      - name: Build Solution
+        run: dotnet build AuthApi.sln --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test AuthApi/AuthApi.csproj --configuration Release --no-build
+      - name: Run Tests
+        run: dotnet test AuthApi.sln --configuration Release --no-build
 
 
 # =========================
@@ -56,7 +57,8 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -68,7 +70,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push
+      - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: ./AuthApi
@@ -81,7 +83,7 @@ jobs:
 
 
 # =========================
-# DEPLOY DEV
+# DEPLOY DEV (Fly.io)
 # =========================
   deploy-dev:
     name: Deploy Dev
@@ -90,19 +92,20 @@ jobs:
     if: github.ref == 'refs/heads/dev'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy DEV
+      - name: Deploy to Fly (Dev)
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
 
 # =========================
-# DEPLOY STAGING
+# DEPLOY STAGING (Fly.io)
 # =========================
   deploy-staging:
     name: Deploy Staging
@@ -111,19 +114,20 @@ jobs:
     if: github.ref == 'refs/heads/staging'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy STAGING
+      - name: Deploy to Fly (Staging)
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
 
 # =========================
-# DEPLOY PROD
+# DEPLOY PROD (Fly.io)
 # =========================
   deploy-prod:
     name: Deploy Production
@@ -132,12 +136,13 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy PROD
+      - name: Deploy to Fly (Production)
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
