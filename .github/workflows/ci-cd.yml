@@ -19,7 +19,7 @@ env:
 jobs:
 
 # =========================
-# BUILD & TEST (.NET SOLUTION)
+# BUILD & TEST (.NET)
 # =========================
   build:
     name: Build & Test
@@ -45,7 +45,7 @@ jobs:
 
 
 # =========================
-# DOCKER BUILD & PUSH (FIXED CONTEXT)
+# DOCKER BUILD & PUSH
 # =========================
   docker:
     name: Build & Push Docker Image
@@ -60,6 +60,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # FIX: safe Docker tag (no "/" allowed)
+      - name: Set Safe Docker Tag
+        run: |
+          TAG=$(echo "${GITHUB_REF_NAME}" | sed 's/\//-/g')
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -70,9 +76,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Debug file structure
-        run: ls -R AuthApi
-
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -82,11 +85,11 @@ jobs:
           platforms: linux/amd64
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
 
 
 # =========================
-# DEPLOY DEV (FLY.IO)
+# DEPLOY DEV
 # =========================
   deploy-dev:
     name: Deploy Dev
@@ -108,7 +111,7 @@ jobs:
 
 
 # =========================
-# DEPLOY STAGING (FLY.IO)
+# DEPLOY STAGING
 # =========================
   deploy-staging:
     name: Deploy Staging
@@ -130,7 +133,7 @@ jobs:
 
 
 # =========================
-# DEPLOY PRODUCTION (FLY.IO)
+# DEPLOY PRODUCTION
 # =========================
   deploy-prod:
     name: Deploy Production
