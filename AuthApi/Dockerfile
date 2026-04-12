@@ -1,20 +1,17 @@
-# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy project file FIRST (safe + fast restore cache)
-COPY AuthApi.csproj ./
-
-# Restore explicitly
-RUN dotnet restore ./AuthApi.csproj
-
-# Copy everything else
+# Copy everything inside AuthApi context
 COPY . .
 
-# Publish
-RUN dotnet publish ./AuthApi.csproj -c Release -o /app/publish
+# Debug (important for CI visibility)
+RUN ls -la
 
-# Runtime stage
+# Restore using explicit project path
+RUN dotnet restore AuthApi.csproj
+
+RUN dotnet publish AuthApi.csproj -c Release -o /app/publish
+
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 
