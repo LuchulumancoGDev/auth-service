@@ -3,11 +3,9 @@ WORKDIR /src
 
 COPY . .
 
-# restore solution
-RUN dotnet restore "./AuthApi.sln"
-
-# publish solution
-RUN dotnet publish "./AuthApi.sln" -c Release -o /app/publish
+RUN dotnet restore
+RUN dotnet build -c Release
+RUN dotnet publish -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
