@@ -2,15 +2,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy project file (NOW CORRECT for context=AuthApi)
-COPY AuthApi.csproj ./
+# Copy ONLY csproj (safe version)
+COPY *.csproj ./
+RUN dotnet restore
 
-RUN dotnet restore AuthApi.csproj
-
-# Copy everything else
+# Copy everything
 COPY . .
 
-RUN dotnet publish AuthApi.csproj -c Release -o /app/publish
+RUN dotnet publish -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
