@@ -1,6 +1,8 @@
-bin
-obj
-.git
-.github
-.vscode
-*.md
+bin/
+obj/
+.vs/
+.git/
+.gitignore
+README.md
+fly.toml
+docker-compose*
