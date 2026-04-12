@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# safer wildcard copy (avoids path issues completely)
+# Copy entire solution structure
 COPY . .
 
-RUN dotnet restore AuthApi.csproj
-RUN dotnet publish AuthApi.csproj -c Release -o /app/publish
+RUN dotnet restore ./AuthApi/AuthApi.csproj
+RUN dotnet publish ./AuthApi/AuthApi.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
