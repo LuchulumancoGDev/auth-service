@@ -79,7 +79,7 @@ jobs:
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./AuthApi
+          context: .
           file: ./AuthApi/Dockerfile
           push: true
           platforms: linux/amd64
