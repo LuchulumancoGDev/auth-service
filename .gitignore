@@ -3,3 +3,9 @@
 ################################################################################
 
 /.vs
+/Auth.Application/bin/Debug/net9.0
+/Auth.Application/obj
+/Auth.Domain/bin/Debug/net9.0
+/Auth.Domain/obj
+/Auth.Infrastructure/bin/Debug/net9.0
+/Auth.Infrastructure/obj
