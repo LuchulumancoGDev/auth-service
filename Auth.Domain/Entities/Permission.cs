@@ -1,9 +1,9 @@
 ﻿namespace Auth.Domain.Entities;
 
-public class Permission
+public class Permission : TenantEntity
 {
-    public Guid Id { get; set; }
     public string Name { get; set; }
+    public string? Description { get; set; }
     public ICollection<RolePermission> RolePermissions { get; set; }
     public ICollection<UserPermission> UserPermissions { get; set; }
 }
