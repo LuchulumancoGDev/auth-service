@@ -1,6 +1,5 @@
-using Auth.Domain.Entities;
-using Auth.Domain.Enums;
 using Auth.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Auth.Infrastructure.Services;
 
@@ -20,47 +19,7 @@ public class DbInitializer : IDbInitializer
 
     public async Task InitializeAsync()
     {
-        // Seed system roles
-        await SeedRolesAsync();
-    }
-
-    private async Task SeedRolesAsync()
-    {
-        // Check if roles already exist
-        if (_context.Roles.Any())
-        {
-            return;
-        }
-
-        var roles = new List<Role>
-        {
-            new Role
-            {
-                Id = Guid.NewGuid(),
-                Name = UserType.Admin.ToString(),
-                Description = "Administrator with full system access",
-                IsSystem = true,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Role
-            {
-                Id = Guid.NewGuid(),
-                Name = UserType.Driver.ToString(),
-                Description = "Driver role for transportation services",
-                IsSystem = true,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Role
-            {
-                Id = Guid.NewGuid(),
-                Name = UserType.Customer.ToString(),
-                Description = "Customer role for end users",
-                IsSystem = true,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
-
-        await _context.Roles.AddRangeAsync(roles);
-        await _context.SaveChangesAsync();
+        // Apply any pending migrations
+        await _context.Database.MigrateAsync();
     }
 }

@@ -1,17 +1,16 @@
-﻿
-using Auth.Domain.Entities;
+﻿using Auth.Domain.Entities;
+using Auth.Domain.Enums;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Auth.Infrastructure.Persistence;
 
-public class AppDbContext:IdentityDbContext<ApplicationUser>
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public DbSet<Tenant> Tenants { get; set; }
     public new DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
-    public DbSet<UserPermission> UserPermissions { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -30,6 +29,10 @@ public class AppDbContext:IdentityDbContext<ApplicationUser>
             .Property(t => t.Name)
             .IsRequired();
 
+        builder.Entity<Tenant>()
+            .Property(t => t.Type)
+            .HasConversion<int>();
+
         // ===== APPLICATION USER CONFIGURATION =====
         builder.Entity<ApplicationUser>()
             .Property(u => u.TenantId)
@@ -39,6 +42,12 @@ public class AppDbContext:IdentityDbContext<ApplicationUser>
             .HasOne(u => u.Tenant)
             .WithMany(t => t.Users)
             .HasForeignKey(u => u.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ApplicationUser>()
+            .HasOne(u => u.Role)
+            .WithMany()
+            .HasForeignKey(u => u.RoleId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<ApplicationUser>()
@@ -108,30 +117,6 @@ public class AppDbContext:IdentityDbContext<ApplicationUser>
             .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
             .IsUnique();
 
-        // ===== USER-PERMISSION CONFIGURATION =====
-        builder.Entity<UserPermission>()
-            .HasKey(up => up.Id);
-
-        builder.Entity<UserPermission>()
-            .HasOne(up => up.User)
-            .WithMany(u => u.UserPermissions)
-            .HasForeignKey(up => up.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Entity<UserPermission>()
-            .HasOne(up => up.Permission)
-            .WithMany(p => p.UserPermissions)
-            .HasForeignKey(up => up.PermissionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Entity<UserPermission>()
-            .HasIndex(up => new { up.TenantId, up.UserId, up.PermissionId })
-            .IsUnique();
-
-        // Global query filter for UserPermission tenant isolation
-        builder.Entity<UserPermission>()
-            .HasQueryFilter(up => up.TenantId != Guid.Empty);
-
         // ===== REFRESH TOKEN CONFIGURATION =====
         builder.Entity<RefreshToken>()
             .HasKey(rt => rt.Id);
@@ -153,5 +138,40 @@ public class AppDbContext:IdentityDbContext<ApplicationUser>
         // Global query filter for RefreshToken tenant isolation
         builder.Entity<RefreshToken>()
             .HasQueryFilter(rt => rt.TenantId != Guid.Empty);
+
+        // Seed system roles
+        SeedSystemRoles(builder);
+    }
+
+    private static void SeedSystemRoles(ModelBuilder builder)
+    {
+        var adminRole = new Role
+        {
+            Id = Guid.Parse("1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"),
+            Name = UserType.Admin.ToString(),
+            Description = "Administrator with full system access",
+            IsSystem = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var driverRole = new Role
+        {
+            Id = Guid.Parse("2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"),
+            Name = UserType.Driver.ToString(),
+            Description = "Driver role for transportation services",
+            IsSystem = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var customerRole = new Role
+        {
+            Id = Guid.Parse("3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"),
+            Name = UserType.Customer.ToString(),
+            Description = "Customer role for end users",
+            IsSystem = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        builder.Entity<Role>().HasData(adminRole, driverRole, customerRole);
     }
 }
