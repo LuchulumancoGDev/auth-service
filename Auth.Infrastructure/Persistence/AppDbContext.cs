@@ -145,13 +145,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     private static void SeedSystemRoles(ModelBuilder builder)
     {
+        var seedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
         var adminRole = new Role
         {
             Id = Guid.Parse("1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"),
             Name = UserType.Admin.ToString(),
             Description = "Administrator with full system access",
             IsSystem = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = seedDate
         };
 
         var driverRole = new Role
@@ -160,7 +162,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             Name = UserType.Driver.ToString(),
             Description = "Driver role for transportation services",
             IsSystem = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = seedDate
         };
 
         var customerRole = new Role
@@ -169,7 +171,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             Name = UserType.Customer.ToString(),
             Description = "Customer role for end users",
             IsSystem = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = seedDate
         };
 
         builder.Entity<Role>().HasData(adminRole, driverRole, customerRole);
