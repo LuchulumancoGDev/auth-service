@@ -235,7 +235,7 @@ namespace Auth.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"),
-                            CreatedAt = new DateTime(2026, 5, 8, 16, 34, 1, 110, DateTimeKind.Utc).AddTicks(1822),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Administrator with full system access",
                             IsSystem = true,
                             Name = "Admin"
@@ -243,7 +243,7 @@ namespace Auth.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"),
-                            CreatedAt = new DateTime(2026, 5, 8, 16, 34, 1, 110, DateTimeKind.Utc).AddTicks(1997),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Driver role for transportation services",
                             IsSystem = true,
                             Name = "Driver"
@@ -251,7 +251,7 @@ namespace Auth.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"),
-                            CreatedAt = new DateTime(2026, 5, 8, 16, 34, 1, 110, DateTimeKind.Utc).AddTicks(2001),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Customer role for end users",
                             IsSystem = true,
                             Name = "Customer"

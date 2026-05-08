@@ -6073,11 +6073,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\AuthApi\\AuthApi.csproj",
+      "projectUniqueName": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\AuthApi\\AuthApi.csproj",
       "projectName": "AuthApi",
-      "projectPath": "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\AuthApi\\AuthApi.csproj",
+      "projectPath": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\AuthApi\\AuthApi.csproj",
       "packagesPath": "C:\\Users\\bhuti\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\AuthApi\\obj\\",
+      "outputPath": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\AuthApi\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -6098,11 +6098,11 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\Auth.Application\\Auth.Application.csproj": {
-              "projectPath": "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\Auth.Application\\Auth.Application.csproj"
+            "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Application\\Auth.Application.csproj": {
+              "projectPath": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Application\\Auth.Application.csproj"
             },
-            "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\Auth.Infrastructure\\Auth.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\bhuti\\Documents\\GitHubApps\\auth-service\\Auth.Infrastructure\\Auth.Infrastructure.csproj"
+            "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Infrastructure\\Auth.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Infrastructure\\Auth.Infrastructure.csproj"
             }
           }
         }
