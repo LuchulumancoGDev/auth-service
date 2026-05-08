@@ -1,21 +1,35 @@
 using Auth.Application.DTOs;
 using Auth.Application.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Auth.Infrastructure.Services;
 
 public class SocialAuthenticationService : ISocialAuthenticationService
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SocialAuthenticationService> _logger;
 
+    private static string GenerateAppSecretProof(string accessToken, string appSecret)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(appSecret));
+        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(accessToken));
+        return Convert.ToHexString(hash).ToLower();
+    }
+
     public SocialAuthenticationService(
-        IHttpClientFactory httpClientFactory,
-        ILogger<SocialAuthenticationService> logger)
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration,
+            ILogger<SocialAuthenticationService> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -144,7 +158,7 @@ public class SocialAuthenticationService : ISocialAuthenticationService
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(idToken);
 
-        var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value 
+        var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                     ?? jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value;
         var name = jwtToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
         var sub = jwtToken.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
@@ -171,10 +185,19 @@ public class SocialAuthenticationService : ISocialAuthenticationService
     {
         try
         {
+            var appId = _configuration["Facebook:AppId"];
+            var appSecret = _configuration["Facebook:AppSecret"];
+
+            var appSecretProof = GenerateAppSecretProof(accessToken, appSecret);
+
+            var url =
+                $"https://graph.facebook.com/me" +
+                $"?fields=id,name,email,first_name,last_name,picture" +
+                $"&access_token={accessToken}" +
+                $"&appsecret_proof={appSecretProof}";
+
             var client = _httpClientFactory.CreateClient();
-            var response = await client.GetAsync(
-                $"https://graph.facebook.com/me?fields=id,name,email,first_name,last_name,picture&access_token={accessToken}",
-                cancellationToken);
+            var response = await client.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -213,7 +236,7 @@ public class SocialAuthenticationService : ISocialAuthenticationService
             // Twitter API v2 requires OAuth 2.0 bearer token
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            
+
             var response = await client.GetAsync("https://api.twitter.com/2/users/me?user.fields=profile_image_url,email", cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -268,21 +291,34 @@ public class SocialAuthenticationService : ISocialAuthenticationService
 
     private class FacebookUserInfo
     {
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("email")]
         public string? Email { get; set; }
+
+        [JsonPropertyName("first_name")]
         public string? FirstName { get; set; }
+
+        [JsonPropertyName("last_name")]
         public string? LastName { get; set; }
+
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
+
+        [JsonPropertyName("picture")]
         public FacebookPicture? Picture { get; set; }
     }
 
     private class FacebookPicture
     {
+        [JsonPropertyName("data")]
         public FacebookPictureData? Data { get; set; }
     }
 
     private class FacebookPictureData
     {
+        [JsonPropertyName("url")]
         public string? Url { get; set; }
     }
 
