@@ -9,3 +9,17 @@
 /Auth.Domain/obj
 /Auth.Infrastructure/bin/Debug/net9.0
 /Auth.Infrastructure/obj
+AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
+AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
+AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
+AuthApi/obj/AuthApi.csproj.nuget.g.props
+AuthApi/obj/project.nuget.cache
+AuthApi/obj/Debug/net9.0/AuthApi.GeneratedMSBuildEditorConfig.editorconfig
+AuthApi/obj/Debug/net9.0/AuthApi.csproj.AssemblyReference.cache
+AuthApi/obj/Debug/net9.0/AuthApi.assets.cache
+AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
+AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfoInputs.cache
+AuthApi/obj/project.nuget.cache
+AuthApi/obj/project.assets.json
+AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
+AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfoInputs.cache
