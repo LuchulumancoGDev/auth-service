@@ -1,6 +1,0 @@
-{
-  "Auth.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Application",
-  "Auth.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Domain",
-  "Auth.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\Auth.Infrastructure",
-  "AuthApi, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\bhuti\\Source\\Repos\\auth-service\\AuthApi"
-}
