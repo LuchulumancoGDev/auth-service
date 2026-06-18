@@ -23,6 +23,10 @@ public static class AuthorizationPolicies
         options.AddPolicy(CustomerOnlyPolicy, policy =>
             policy.RequireClaim("role", UserType.Customer.ToString()));
 
+        // Organization admin membership policy
+        options.AddPolicy("OrganizationAdminOnly", policy =>
+            policy.Requirements.Add(new MembershipAuthorizationRequirement("Admin")));
+
         // Authenticated user policy (any valid role)
         options.AddPolicy("Authenticated", policy =>
             policy.RequireAuthenticatedUser());

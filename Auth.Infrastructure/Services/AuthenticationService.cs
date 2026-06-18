@@ -14,6 +14,8 @@ public class AuthenticationService : IAuthenticationService
     private readonly ITenantRepository _tenantRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IRoleRepository _roleRepository;
+    private readonly IMembershipRepository _membershipRepository;
+    private readonly IOrganizationService _organizationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly ITokenHashingService _tokenHashingService;
@@ -24,6 +26,8 @@ public class AuthenticationService : IAuthenticationService
         ITenantRepository tenantRepository,
         IRefreshTokenRepository refreshTokenRepository,
         IRoleRepository roleRepository,
+        IMembershipRepository membershipRepository,
+        IOrganizationService organizationService,
         UserManager<ApplicationUser> userManager,
         IJwtTokenGenerator jwtTokenGenerator,
         ITokenHashingService tokenHashingService,
@@ -33,6 +37,8 @@ public class AuthenticationService : IAuthenticationService
         _tenantRepository = tenantRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _roleRepository = roleRepository;
+        _membershipRepository = membershipRepository;
+        _organizationService = organizationService;
         _userManager = userManager;
         _jwtTokenGenerator = jwtTokenGenerator;
         _tokenHashingService = tokenHashingService;
@@ -41,12 +47,7 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.AccountType == AccountType.Organization && request.UserType != UserType.Admin)
-            return AuthResponse.CreateError("Organization accounts must have Admin role");
-
-        if (request.AccountType == AccountType.Individual && request.UserType == UserType.Admin)
-            return AuthResponse.CreateError("Individual accounts cannot have Admin role");
-
+        // Validate basic request requirements
         if (await _userRepository.EmailExistsAsync(request.Email))
             return AuthResponse.CreateError("Email already registered");
 
@@ -54,11 +55,27 @@ public class AuthenticationService : IAuthenticationService
         if (role == null)
             return AuthResponse.CreateError("Invalid user type");
 
+        // Personal Registration Flow
+        if (!request.IsBusinessRegistration)
+        {
+            return await RegisterPersonalAsync(request, role);
+        }
+
+        // Business Registration Flow
+        return await RegisterBusinessAsync(request, role);
+    }
+
+    private async Task<AuthResponse> RegisterPersonalAsync(RegisterRequest request, Role role)
+    {
+        // For personal registration, create user without tenant/organization
+        // We'll create a minimal tenant just for the user (legacy compatibility)
         var tenant = new Tenant
         {
             Id = Guid.NewGuid(),
-            Name = request.TenantName ?? $"{request.FullName}'s Account",
-            Type = request.AccountType == AccountType.Organization ? TenantType.Organization : TenantType.Individual,
+            Name = $"{request.FullName}'s Account",
+            Slug = await _organizationService.GenerateUniqueSlugAsync(request.FullName),
+            Type = TenantType.Individual,
+            Status = "Active",
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -72,7 +89,7 @@ public class AuthenticationService : IAuthenticationService
             Email = request.Email,
             FullName = request.FullName,
             TenantId = tenant.Id,
-            AccountType = request.AccountType,
+            AccountType = AccountType.Individual,
             UserType = request.UserType,
             RoleId = role.Id,
             IsEmailVerified = false,
@@ -86,12 +103,84 @@ public class AuthenticationService : IAuthenticationService
 
         var (accessToken, refreshToken) = await GenerateTokensAsync(user);
 
-        return AuthResponse.CreateSuccess("Registration successful", MapToUserDto(user), new JwtTokenResponse
+        return AuthResponse.CreateSuccess("Personal registration successful", MapToUserDto(user), new JwtTokenResponse
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresIn = 60
         });
+    }
+
+    private async Task<AuthResponse> RegisterBusinessAsync(RegisterRequest request, Role role)
+    {
+        // Business registration creates organization with user as owner
+        if (string.IsNullOrWhiteSpace(request.OrganizationName) && string.IsNullOrWhiteSpace(request.TenantName))
+            return AuthResponse.CreateError("Organization name is required for business registration");
+
+        var organizationName = request.OrganizationName ?? request.TenantName ?? $"{request.FullName}'s Organization";
+        
+        try
+        {
+            // 1. Create user first
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid().ToString(), // Pre-assign ID for consistency
+                UserName = request.Email,
+                Email = request.Email,
+                FullName = request.FullName,
+                TenantId = Guid.Empty, // Temporary - will be set after org creation
+                AccountType = AccountType.Organization,
+                UserType = UserType.Admin, // Business registrants are admins
+                RoleId = role.Id,
+                IsEmailVerified = false,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var createResult = await _userManager.CreateAsync(user, request.Password);
+            if (!createResult.Succeeded)
+                return AuthResponse.CreateError(string.Join(", ", createResult.Errors.Select(e => e.Description)));
+
+            // 2. Create organization with user as owner
+            var slug = await _organizationService.GenerateUniqueSlugAsync(organizationName);
+            var organization = await _organizationService.CreateOrganizationAsync(
+                organizationName,
+                slug,
+                user.Id,
+                "Organization");
+
+            // 3. Update user with organization tenant ID
+            user.TenantId = organization.Id;
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+                return AuthResponse.CreateError("Failed to link user to organization");
+
+            // 4. Create membership with Owner role
+            var ownerRole = await _roleRepository.GetByNameAsync(UserType.Admin.ToString());
+            if (ownerRole == null)
+                return AuthResponse.CreateError("Admin role not found");
+
+            var membership = await _organizationService.CreateMembershipAsync(
+                user.Id,
+                organization.Id,
+                ownerRole.Id);
+
+            var (accessToken, refreshToken) = await GenerateTokensAsync(user);
+
+            return AuthResponse.CreateSuccess(
+                "Business registration successful - organization created",
+                MapToUserDto(user),
+                new JwtTokenResponse
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    ExpiresIn = 60
+                });
+        }
+        catch (Exception ex)
+        {
+            return AuthResponse.CreateError($"Business registration failed: {ex.Message}");
+        }
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -275,7 +364,8 @@ public class AuthenticationService : IAuthenticationService
 
     private async Task<(string AccessToken, string RefreshToken)> GenerateTokensAsync(ApplicationUser user)
     {
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
+        var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(user.Id);
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, memberships);
         var refreshToken = _jwtTokenGenerator.GenerateRefreshToken();
         var refreshTokenHash = _tokenHashingService.HashToken(refreshToken);
 

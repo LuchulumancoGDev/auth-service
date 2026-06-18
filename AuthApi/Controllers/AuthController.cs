@@ -1,5 +1,6 @@
 using Auth.Application.DTOs;
 using Auth.Application.Services;
+using Auth.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -79,5 +80,41 @@ public class AuthController : ControllerBase
         }
         
         return Ok(result);
+    }
+
+    [HttpPost("invitations")]
+    [Authorize]
+    public async Task<ActionResult<InvitationDto>> CreateInvitation([FromBody] CreateInvitationRequest request)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!
+                     ?? throw new InvalidOperationException("User id not found");
+
+        // Tenant resolution: assume tenantId comes from user's claims for now
+        var tenantClaim = User.FindFirst("tenantId")?.Value;
+        if (tenantClaim == null) return Forbid();
+        var tenantId = Guid.Parse(tenantClaim);
+
+        var invitation = await HttpContext.RequestServices.GetRequiredService<IInvitationService>()
+            .CreateInvitationAsync(userId, tenantId, request);
+
+        return Ok(invitation);
+    }
+
+    [HttpPost("invitations/accept")]
+    [AllowAnonymous]
+    public async Task<ActionResult> AcceptInvitation([FromBody] AcceptInvitationRequest request)
+    {
+        // Accept token; if user is authenticated, use their id, otherwise return error for now
+        string? userId = User.Identity?.IsAuthenticated == true
+            ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            : null;
+
+        if (string.IsNullOrEmpty(userId)) return BadRequest(new { message = "Must be authenticated to accept invitation" });
+
+        var result = await HttpContext.RequestServices.GetRequiredService<IInvitationService>()
+            .AcceptInvitationAsync(request.Token, userId);
+
+        if (!result) return BadRequest(new { message = "Invalid or expired token" });
+        return Ok(new { message = "Invitation accepted" });
     }
 }

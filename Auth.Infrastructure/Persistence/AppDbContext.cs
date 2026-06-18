@@ -12,6 +12,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Membership> Memberships { get; set; }
+    public DbSet<OrganizationInvitation> OrganizationInvitations { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -30,8 +32,41 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .IsRequired();
 
         builder.Entity<Tenant>()
+            .Property(t => t.Slug)
+            .IsRequired();
+
+        builder.Entity<Tenant>()
+            .HasIndex(t => t.Slug)
+            .IsUnique();
+
+        builder.Entity<Tenant>()
             .Property(t => t.Type)
             .HasConversion<int>();
+
+        builder.Entity<Tenant>()
+            .Property(t => t.Status)
+            .HasDefaultValue("Active");
+
+        // Foreign key to owner
+        builder.Entity<Tenant>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(t => t.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // Relationships for new collections
+        builder.Entity<Tenant>()
+            .HasMany(t => t.Memberships)
+            .WithOne(m => m.Tenant)
+            .HasForeignKey(m => m.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Tenant>()
+            .HasMany(t => t.Invitations)
+            .WithOne(i => i.Tenant)
+            .HasForeignKey(i => i.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // ===== APPLICATION USER CONFIGURATION =====
         builder.Entity<ApplicationUser>()
@@ -66,6 +101,81 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         // Global query filter for ApplicationUser tenant isolation
         builder.Entity<ApplicationUser>()
             .HasQueryFilter(u => u.TenantId != Guid.Empty);
+
+        // ===== MEMBERSHIP CONFIGURATION =====
+        builder.Entity<Membership>()
+            .HasKey(m => m.Id);
+
+        builder.Entity<Membership>()
+            .HasOne(m => m.User)
+            .WithMany()
+            .HasForeignKey(m => m.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Membership>()
+            .HasOne(m => m.Tenant)
+            .WithMany(t => t.Memberships)
+            .HasForeignKey(m => m.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Membership>()
+            .HasOne(m => m.Role)
+            .WithMany()
+            .HasForeignKey(m => m.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Membership>()
+            .Property(m => m.Status)
+            .HasDefaultValue("Active");
+
+        builder.Entity<Membership>()
+            .HasIndex(m => new { m.TenantId, m.UserId })
+            .IsUnique();
+
+        // Global query filter for Membership tenant isolation
+        builder.Entity<Membership>()
+            .HasQueryFilter(m => m.TenantId != Guid.Empty);
+
+        // ===== ORGANIZATION INVITATION CONFIGURATION =====
+        builder.Entity<OrganizationInvitation>()
+            .HasKey(i => i.Id);
+
+        builder.Entity<OrganizationInvitation>()
+            .HasOne(i => i.Tenant)
+            .WithMany(t => t.Invitations)
+            .HasForeignKey(i => i.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<OrganizationInvitation>()
+            .HasOne(i => i.Role)
+            .WithMany()
+            .HasForeignKey(i => i.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<OrganizationInvitation>()
+            .Property(i => i.Email)
+            .IsRequired();
+
+        builder.Entity<OrganizationInvitation>()
+            .Property(i => i.Token)
+            .IsRequired();
+
+        builder.Entity<OrganizationInvitation>()
+            .Property(i => i.Status)
+            .HasDefaultValue("Pending");
+
+        builder.Entity<OrganizationInvitation>()
+            .HasIndex(i => i.Token)
+            .IsUnique();
+
+        builder.Entity<OrganizationInvitation>()
+            .HasIndex(i => new { i.TenantId, i.Email })
+            .IsUnique()
+            .HasFilter("[Status] = 'Pending'");
+
+        // Global query filter for OrganizationInvitation tenant isolation
+        builder.Entity<OrganizationInvitation>()
+            .HasQueryFilter(i => i.TenantId != Guid.Empty);
 
         // ===== ROLE CONFIGURATION =====
         builder.Entity<Role>()

@@ -10,7 +10,8 @@ namespace Auth.Application.Services;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateAccessToken(ApplicationUser user);
+    // memberships: optional list of active memberships to embed in token
+    string GenerateAccessToken(ApplicationUser user, IEnumerable<Auth.Domain.Entities.Membership>? memberships = null);
     string GenerateRefreshToken();
 }
 
@@ -23,7 +24,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(ApplicationUser user)
+    public string GenerateAccessToken(ApplicationUser user, IEnumerable<Auth.Domain.Entities.Membership>? memberships = null)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"];
@@ -41,6 +42,21 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim("email", user.Email ?? string.Empty),
             new Claim("role", user.UserType.ToString())
         };
+
+        if (memberships != null)
+        {
+            // embed memberships as a JSON array in a single claim
+            var membershipDtos = memberships.Select(m => new
+            {
+                membershipId = m.Id,
+                tenantId = m.TenantId,
+                roleId = m.RoleId,
+                roleName = m.Role?.Name ?? string.Empty,
+                status = m.Status
+            });
+            var json = System.Text.Json.JsonSerializer.Serialize(membershipDtos);
+            claims.Add(new Claim("memberships", json));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

@@ -6,6 +6,7 @@ using Auth.Infrastructure.Repositories;
 using Auth.Infrastructure.Services;
 using AuthApi.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -66,6 +67,9 @@ builder.Services.AddAuthorization(options =>
     options.AddAuthorizationPolicies();
 });
 
+// Register authorization handlers
+builder.Services.AddSingleton<IAuthorizationHandler, MembershipAuthorizationHandler>();
+
 // ===== INFRASTRUCTURE SERVICES =====
 builder.Services.AddScoped<ITokenHashingService, TokenHashingService>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
@@ -83,6 +87,15 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddScoped<IMembershipRepository, MembershipRepository>();
+builder.Services.AddScoped<IOrganizationInvitationRepository, OrganizationInvitationRepository>();
+builder.Services.AddScoped<IInvitationService, InvitationService>();
+// Membership context provider
+builder.Services.AddScoped<ICurrentMembershipProvider, CurrentMembershipProvider>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+// ===== ORGANIZATION SERVICES =====
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 
 // ===== HTTP CONTEXT ACCESSOR =====
 builder.Services.AddHttpContextAccessor();
@@ -129,6 +142,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthentication();
+app.UseMiddleware<MembershipMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<TenantContextMiddleware>();
 
