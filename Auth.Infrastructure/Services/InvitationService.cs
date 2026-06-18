@@ -127,7 +127,7 @@ public class InvitationService : IInvitationService
         if (inv.Status != "Pending") return false;
 
         // Check if user already exists
-        var user = await _userRepository.GetByIdWithTenantAsync(acceptingUserId);
+        var user = await _userRepository.GetByIdAsync(acceptingUserId);
         if (user == null) return false;
 
         // Create membership

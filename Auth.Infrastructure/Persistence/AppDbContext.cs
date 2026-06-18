@@ -70,22 +70,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         // ===== APPLICATION USER CONFIGURATION =====
         builder.Entity<ApplicationUser>()
-            .Property(u => u.TenantId)
-            .IsRequired();
-
-        builder.Entity<ApplicationUser>()
-            .HasOne(u => u.Tenant)
-            .WithMany(t => t.Users)
-            .HasForeignKey(u => u.TenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.Entity<ApplicationUser>()
-            .HasOne(u => u.Role)
-            .WithMany()
-            .HasForeignKey(u => u.RoleId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.Entity<ApplicationUser>()
             .Property(u => u.AccountType)
             .HasConversion<int>();
 
@@ -93,14 +77,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .Property(u => u.UserType)
             .HasConversion<int>();
 
+        // User email uniqueness - global scope since user is identity, not tenant-specific
         builder.Entity<ApplicationUser>()
-            .HasIndex(u => new { u.TenantId, u.Email })
+            .HasIndex(u => u.NormalizedEmail)
             .IsUnique()
             .HasFilter("[NormalizedEmail] IS NOT NULL");
-
-        // Global query filter for ApplicationUser tenant isolation
-        builder.Entity<ApplicationUser>()
-            .HasQueryFilter(u => u.TenantId != Guid.Empty);
 
         // ===== MEMBERSHIP CONFIGURATION =====
         builder.Entity<Membership>()
@@ -257,18 +238,45 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var adminRole = new Role
+        var ownerRole = new Role
         {
             Id = Guid.Parse("1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"),
+            Name = UserType.Owner.ToString(),
+            Description = "Organization owner with all permissions",
+            IsSystem = true,
+            CreatedAt = seedDate
+        };
+
+        var adminRole = new Role
+        {
+            Id = Guid.Parse("2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"),
             Name = UserType.Admin.ToString(),
             Description = "Administrator with full system access",
             IsSystem = true,
             CreatedAt = seedDate
         };
 
+        var managerRole = new Role
+        {
+            Id = Guid.Parse("3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"),
+            Name = UserType.Manager.ToString(),
+            Description = "Manager with operational permissions",
+            IsSystem = true,
+            CreatedAt = seedDate
+        };
+
+        var dispatcherRole = new Role
+        {
+            Id = Guid.Parse("4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a"),
+            Name = UserType.Dispatcher.ToString(),
+            Description = "Dispatcher role for assigning tasks",
+            IsSystem = true,
+            CreatedAt = seedDate
+        };
+
         var driverRole = new Role
         {
-            Id = Guid.Parse("2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"),
+            Id = Guid.Parse("5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b"),
             Name = UserType.Driver.ToString(),
             Description = "Driver role for transportation services",
             IsSystem = true,
@@ -277,13 +285,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         var customerRole = new Role
         {
-            Id = Guid.Parse("3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"),
+            Id = Guid.Parse("6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c"),
             Name = UserType.Customer.ToString(),
             Description = "Customer role for end users",
             IsSystem = true,
             CreatedAt = seedDate
         };
 
-        builder.Entity<Role>().HasData(adminRole, driverRole, customerRole);
+        builder.Entity<Role>().HasData(ownerRole, adminRole, managerRole, dispatcherRole, driverRole, customerRole);
     }
 }

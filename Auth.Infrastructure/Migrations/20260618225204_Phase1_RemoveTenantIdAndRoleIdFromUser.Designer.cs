@@ -4,6 +4,7 @@ using Auth.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Auth.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260618225204_Phase1_RemoveTenantIdAndRoleIdFromUser")]
+    partial class Phase1_RemoveTenantIdAndRoleIdFromUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -330,37 +333,13 @@ namespace Auth.Infrastructure.Migrations
                         {
                             Id = new Guid("1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"),
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Organization owner with all permissions",
-                            IsSystem = true,
-                            Name = "Owner"
-                        },
-                        new
-                        {
-                            Id = new Guid("2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Administrator with full system access",
                             IsSystem = true,
                             Name = "Admin"
                         },
                         new
                         {
-                            Id = new Guid("3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Manager with operational permissions",
-                            IsSystem = true,
-                            Name = "Manager"
-                        },
-                        new
-                        {
-                            Id = new Guid("4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a"),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Dispatcher role for assigning tasks",
-                            IsSystem = true,
-                            Name = "Dispatcher"
-                        },
-                        new
-                        {
-                            Id = new Guid("5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b"),
+                            Id = new Guid("2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"),
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Driver role for transportation services",
                             IsSystem = true,
@@ -368,7 +347,7 @@ namespace Auth.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c"),
+                            Id = new Guid("3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"),
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Customer role for end users",
                             IsSystem = true,

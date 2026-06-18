@@ -67,31 +67,15 @@ public class AuthenticationService : IAuthenticationService
 
     private async Task<AuthResponse> RegisterPersonalAsync(RegisterRequest request, Role role)
     {
-        // For personal registration, create user without tenant/organization
-        // We'll create a minimal tenant just for the user (legacy compatibility)
-        var tenant = new Tenant
-        {
-            Id = Guid.NewGuid(),
-            Name = $"{request.FullName}'s Account",
-            Slug = await _organizationService.GenerateUniqueSlugAsync(request.FullName),
-            Type = TenantType.Individual,
-            Status = "Active",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _tenantRepository.AddAsync(tenant);
-        await _tenantRepository.SaveChangesAsync();
-
+        // Personal registration: create user without any tenant/organization
+        // User exists as a global identity - no tenant, no membership
         var user = new ApplicationUser
         {
             UserName = request.Email,
             Email = request.Email,
             FullName = request.FullName,
-            TenantId = tenant.Id,
             AccountType = AccountType.Individual,
             UserType = request.UserType,
-            RoleId = role.Id,
             IsEmailVerified = false,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
@@ -101,7 +85,10 @@ public class AuthenticationService : IAuthenticationService
         if (!result.Succeeded)
             return AuthResponse.CreateError(string.Join(", ", result.Errors.Select(e => e.Description)));
 
-        var (accessToken, refreshToken) = await GenerateTokensAsync(user);
+        // No membership created - personal users join organizations via invitations later
+        var memberships = Enumerable.Empty<Membership>();
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, memberships);
+        var refreshToken = await CreateRefreshTokenAsync(user, memberships);
 
         return AuthResponse.CreateSuccess("Personal registration successful", MapToUserDto(user), new JwtTokenResponse
         {
@@ -121,17 +108,15 @@ public class AuthenticationService : IAuthenticationService
         
         try
         {
-            // 1. Create user first
+            // 1. Create user first (no TenantId, no RoleId - they are set via Membership)
             var user = new ApplicationUser
             {
-                Id = Guid.NewGuid().ToString(), // Pre-assign ID for consistency
+                Id = Guid.NewGuid().ToString(),
                 UserName = request.Email,
                 Email = request.Email,
                 FullName = request.FullName,
-                TenantId = Guid.Empty, // Temporary - will be set after org creation
                 AccountType = AccountType.Organization,
-                UserType = UserType.Admin, // Business registrants are admins
-                RoleId = role.Id,
+                UserType = UserType.Admin,
                 IsEmailVerified = false,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -149,23 +134,21 @@ public class AuthenticationService : IAuthenticationService
                 user.Id,
                 "Organization");
 
-            // 3. Update user with organization tenant ID
-            user.TenantId = organization.Id;
-            var updateResult = await _userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-                return AuthResponse.CreateError("Failed to link user to organization");
+            // 3. Find Owner role for business registration
+            var ownerRole = await _roleRepository.GetByNameAsync(UserType.Owner.ToString());
+            if (ownerRole == null)
+                return AuthResponse.CreateError("Owner role not found");
 
             // 4. Create membership with Owner role
-            var ownerRole = await _roleRepository.GetByNameAsync(UserType.Admin.ToString());
-            if (ownerRole == null)
-                return AuthResponse.CreateError("Admin role not found");
-
             var membership = await _organizationService.CreateMembershipAsync(
                 user.Id,
                 organization.Id,
                 ownerRole.Id);
 
-            var (accessToken, refreshToken) = await GenerateTokensAsync(user);
+            // 5. Generate tokens with membership context
+            var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(user.Id);
+            var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, memberships);
+            var refreshToken = await CreateRefreshTokenAsync(user, memberships);
 
             return AuthResponse.CreateSuccess(
                 "Business registration successful - organization created",
@@ -195,7 +178,9 @@ public class AuthenticationService : IAuthenticationService
         if (!user.IsActive)
             return AuthResponse.CreateError("Account is deactivated");
 
-        var (accessToken, refreshToken) = await GenerateTokensAsync(user);
+        var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(user.Id);
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, memberships);
+        var refreshToken = await CreateRefreshTokenAsync(user, memberships);
 
         return AuthResponse.CreateSuccess("Login successful", MapToUserDto(user), new JwtTokenResponse
         {
@@ -239,7 +224,9 @@ public class AuthenticationService : IAuthenticationService
                 if (!existingUser.IsActive)
                     return AuthResponse.CreateError("Account is deactivated");
 
-                var (accessToken, refreshToken) = await GenerateTokensAsync(existingUser);
+                var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(existingUser.Id);
+                var accessToken = _jwtTokenGenerator.GenerateAccessToken(existingUser, memberships);
+                var refreshToken = await CreateRefreshTokenAsync(existingUser, memberships);
 
                 return AuthResponse.CreateSuccess("Login successful", MapToUserDto(existingUser), new JwtTokenResponse
                 {
@@ -260,7 +247,9 @@ public class AuthenticationService : IAuthenticationService
                 if (!updateResult.Succeeded)
                     return AuthResponse.CreateError("Failed to link social account");
 
-                var (accessToken, refreshToken) = await GenerateTokensAsync(existingByEmail);
+                var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(existingByEmail.Id);
+                var accessToken = _jwtTokenGenerator.GenerateAccessToken(existingByEmail, memberships);
+                var refreshToken = await CreateRefreshTokenAsync(existingByEmail, memberships);
 
                 return AuthResponse.CreateSuccess("Account linked and login successful", MapToUserDto(existingByEmail), new JwtTokenResponse
                 {
@@ -270,32 +259,14 @@ public class AuthenticationService : IAuthenticationService
                 });
             }
 
-            // New user - create account
-            var role = await _roleRepository.GetByNameAsync(UserType.Customer.ToString());
-            if (role == null)
-                return AuthResponse.CreateError("Invalid user type");
-
-            var tenant = new Tenant
-            {
-                Id = Guid.NewGuid(),
-                Name = $"{socialUserInfo.FirstName}'s Account",
-                Type = TenantType.Individual,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _tenantRepository.AddAsync(tenant);
-            await _tenantRepository.SaveChangesAsync();
-
+            // New user - create account (personal/social - no tenant created)
             var newUser = new ApplicationUser
             {
                 UserName = socialUserInfo.Email,
                 Email = socialUserInfo.Email,
                 FullName = $"{socialUserInfo.FirstName} {socialUserInfo.LastName}".Trim(),
-                TenantId = tenant.Id,
                 AccountType = AccountType.Individual,
                 UserType = UserType.Customer,
-                RoleId = role.Id,
                 IsEmailVerified = true,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
@@ -307,7 +278,10 @@ public class AuthenticationService : IAuthenticationService
             if (!createResult.Succeeded)
                 return AuthResponse.CreateError(string.Join(", ", createResult.Errors.Select(e => e.Description)));
 
-            var (newAccessToken, newRefreshToken) = await GenerateTokensAsync(newUser);
+            // No membership created - personal users join organizations via invitations later
+            var newMemberships = Enumerable.Empty<Membership>();
+            var newAccessToken = _jwtTokenGenerator.GenerateAccessToken(newUser, newMemberships);
+            var newRefreshToken = await CreateRefreshTokenAsync(newUser, newMemberships);
 
             return AuthResponse.CreateSuccess("Registration successful", MapToUserDto(newUser), new JwtTokenResponse
             {
@@ -344,7 +318,7 @@ public class AuthenticationService : IAuthenticationService
             return AuthResponse.CreateError("Refresh token expired");
         }
 
-        var user = await _userRepository.GetByIdWithTenantAsync(storedToken.UserId);
+        var user = await _userRepository.GetByIdAsync(storedToken.UserId);
         if (user == null || !user.IsActive)
             return AuthResponse.CreateError("User not found or inactive");
 
@@ -352,29 +326,68 @@ public class AuthenticationService : IAuthenticationService
         storedToken.RevokedAt = DateTime.UtcNow;
         await _refreshTokenRepository.SaveChangesAsync();
 
-        var (newAccessToken, newRefreshToken) = await GenerateTokensAsync(user);
+        var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(user.Id);
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, memberships);
+        var newRefreshToken = await CreateRefreshTokenAsync(user, memberships);
 
         return AuthResponse.CreateSuccess("Token refreshed successfully", MapToUserDto(user), new JwtTokenResponse
         {
-            AccessToken = newAccessToken,
+            AccessToken = accessToken,
             RefreshToken = newRefreshToken,
             ExpiresIn = 60
         });
     }
 
-    private async Task<(string AccessToken, string RefreshToken)> GenerateTokensAsync(ApplicationUser user)
+    public async Task<AuthResponse> SwitchOrganizationAsync(string userId, Guid membershipId)
     {
-        var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(user.Id);
+        // Verify the membership exists and belongs to the user
+        var membership = await _membershipRepository.GetMembershipByIdAsync(membershipId);
+        if (membership == null)
+            return AuthResponse.CreateError("Membership not found");
+
+        if (membership.UserId != userId)
+            return AuthResponse.CreateError("Membership does not belong to this user");
+
+        if (membership.Status != "Active")
+            return AuthResponse.CreateError("Membership is not active");
+
+        // Verify the user exists and is active
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null || !user.IsActive)
+            return AuthResponse.CreateError("User not found or inactive");
+
+        // Generate new tokens with the switched membership as primary context
+        var memberships = await _membershipRepository.GetUserActiveMembershipsAsync(userId);
         var accessToken = _jwtTokenGenerator.GenerateAccessToken(user, memberships);
+        var refreshToken = await CreateRefreshTokenAsync(user, memberships);
+
+        return AuthResponse.CreateSuccess("Organization switched successfully", MapToUserDto(user), new JwtTokenResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = 60
+        });
+    }
+
+    /// <summary>
+    /// Creates a refresh token for the user. Uses the first active membership's tenant ID
+    /// for tenant isolation, or Guid.Empty if no memberships exist.
+    /// </summary>
+    private async Task<string> CreateRefreshTokenAsync(ApplicationUser user, IEnumerable<Membership> memberships)
+    {
         var refreshToken = _jwtTokenGenerator.GenerateRefreshToken();
         var refreshTokenHash = _tokenHashingService.HashToken(refreshToken);
+
+        // Derive TenantId from first active membership, fallback to empty
+        var activeMembership = memberships.FirstOrDefault();
+        var tenantId = activeMembership?.TenantId ?? Guid.Empty;
 
         var refreshTokenEntity = new RefreshToken
         {
             Id = Guid.NewGuid(),
             TokenHash = refreshTokenHash,
             UserId = user.Id,
-            TenantId = user.TenantId,
+            TenantId = tenantId,
             ExpiryDate = DateTime.UtcNow.AddDays(7),
             IsRevoked = false
         };
@@ -382,7 +395,7 @@ public class AuthenticationService : IAuthenticationService
         await _refreshTokenRepository.AddAsync(refreshTokenEntity);
         await _refreshTokenRepository.SaveChangesAsync();
 
-        return (accessToken, refreshToken);
+        return refreshToken;
     }
 
     private static UserDto MapToUserDto(ApplicationUser user) => new()
@@ -390,7 +403,6 @@ public class AuthenticationService : IAuthenticationService
         Id = user.Id,
         Email = user.Email!,
         FullName = user.FullName,
-        TenantId = user.TenantId,
         UserType = user.UserType.ToString(),
         IsEmailVerified = user.IsEmailVerified
     };

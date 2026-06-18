@@ -13,22 +13,13 @@ public class UserRepository : RepositoryBase<ApplicationUser>, IUserRepository
     public async Task<ApplicationUser?> GetByEmailAsync(string email)
     {
         return await DbSet
-            .Include(u => u.Tenant)
             .FirstOrDefaultAsync(u => u.NormalizedEmail == email.ToUpper());
     }
 
-    public async Task<ApplicationUser?> GetByIdWithTenantAsync(string userId)
+    public async Task<ApplicationUser?> GetByIdAsync(string userId)
     {
         return await DbSet
-            .Include(u => u.Tenant)
             .FirstOrDefaultAsync(u => u.Id == userId);
-    }
-
-    public async Task<IEnumerable<ApplicationUser>> GetByTenantIdAsync(Guid tenantId)
-    {
-        return await DbSet
-            .Where(u => u.TenantId == tenantId)
-            .ToListAsync();
     }
 
     public async Task<bool> EmailExistsAsync(string email)

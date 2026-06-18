@@ -13,7 +13,6 @@ public class TenantRepository : RepositoryBase<Tenant>, ITenantRepository
     public override async Task<Tenant?> GetByIdAsync(Guid id)
     {
         return await DbSet
-            .Include(t => t.Users)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 

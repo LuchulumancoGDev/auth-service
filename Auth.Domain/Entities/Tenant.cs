@@ -52,11 +52,6 @@ public class Tenant : Entity
     public bool IsActive { get; set; } = true;
 
     /// <summary>
-    /// All users directly associated (legacy - being replaced by Memberships).
-    /// </summary>
-    public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
-
-    /// <summary>
     /// All memberships for this organization.
     /// This is the new relationship model.
     /// </summary>

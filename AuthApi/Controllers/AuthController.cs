@@ -100,6 +100,23 @@ public class AuthController : ControllerBase
         return Ok(invitation);
     }
 
+    [HttpPost("switch-organization")]
+    [Authorize]
+    public async Task<ActionResult<AuthResponse>> SwitchOrganization([FromBody] SwitchOrganizationRequest request)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        var result = await _authenticationService.SwitchOrganizationAsync(userId, request.MembershipId);
+        
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result);
+        }
+        
+        return Ok(result);
+    }
+
     [HttpPost("invitations/accept")]
     [AllowAnonymous]
     public async Task<ActionResult> AcceptInvitation([FromBody] AcceptInvitationRequest request)

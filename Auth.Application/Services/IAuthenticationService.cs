@@ -8,4 +8,5 @@ public interface IAuthenticationService
     Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<AuthResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
     Task<AuthResponse> SocialLoginAsync(SocialLoginRequest request, CancellationToken cancellationToken = default);
+    Task<AuthResponse> SwitchOrganizationAsync(string userId, Guid membershipId);
 }

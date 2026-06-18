@@ -38,14 +38,22 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim("tenantId", user.TenantId.ToString()),
             new Claim("email", user.Email ?? string.Empty),
             new Claim("role", user.UserType.ToString())
         };
 
-        if (memberships != null)
+        if (memberships != null && memberships.Any())
         {
-            // embed memberships as a JSON array in a single claim
+            // Use first active membership as primary tenant context
+            var primaryMembership = memberships.First();
+            claims.Add(new Claim("tenantId", primaryMembership.TenantId.ToString()));
+            claims.Add(new Claim("membership_id", primaryMembership.Id.ToString()));
+            if (primaryMembership.Role != null)
+            {
+                claims.Add(new Claim("role_name", primaryMembership.Role.Name));
+            }
+
+            // embed all memberships as a JSON array in a single claim
             var membershipDtos = memberships.Select(m => new
             {
                 membershipId = m.Id,
@@ -56,6 +64,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             });
             var json = System.Text.Json.JsonSerializer.Serialize(membershipDtos);
             claims.Add(new Claim("memberships", json));
+        }
+        else
+        {
+            // Fallback: user has no memberships (personal account), tenantId = empty
+            claims.Add(new Claim("tenantId", Guid.Empty.ToString()));
         }
 
         var token = new JwtSecurityToken(

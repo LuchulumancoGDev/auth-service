@@ -46,7 +46,7 @@ public class InvitationServiceTests
         var role = new Role { Id = Guid.NewGuid(), Name = "Member", CreatedAt = DateTime.UtcNow };
         context.Roles.Add(role);
 
-        var user = new ApplicationUser { Id = "user-1", Email = "owner@example.com", UserName = "owner@example.com", TenantId = tenant.Id, CreatedAt = DateTime.UtcNow };
+        var user = new ApplicationUser { Id = "user-1", Email = "owner@example.com", UserName = "owner@example.com", CreatedAt = DateTime.UtcNow };
         context.Users.Add(user);
 
         await context.SaveChangesAsync();
