@@ -1,42 +1,62 @@
 ﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+# Global .gitignore for this auth-service repository
 ################################################################################
 
-/.vs
-/Auth.Application/bin/Debug/net9.0
-/Auth.Application/obj
-/Auth.Domain/bin/Debug/net9.0
-/Auth.Domain/obj
-/Auth.Infrastructure/bin/Debug/net9.0
-/Auth.Infrastructure/obj
-AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
-AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
-AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
-AuthApi/obj/AuthApi.csproj.nuget.g.props
-AuthApi/obj/project.nuget.cache
-AuthApi/obj/Debug/net9.0/AuthApi.GeneratedMSBuildEditorConfig.editorconfig
-AuthApi/obj/Debug/net9.0/AuthApi.csproj.AssemblyReference.cache
-AuthApi/obj/Debug/net9.0/AuthApi.assets.cache
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfoInputs.cache
-AuthApi/obj/project.nuget.cache
-AuthApi/obj/project.assets.json
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfoInputs.cache
-AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
-AuthApi/obj/AuthApi.csproj.nuget.dgspec.json
-AuthApi/obj/AuthApi.csproj.nuget.g.props
-AuthApi/obj/project.assets.json
-AuthApi/obj/project.nuget.cache
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfoInputs.cache
-AuthApi/obj/Debug/net9.0/AuthApi.assets.cache
-AuthApi/obj/Debug/net9.0/AuthApi.csproj.AssemblyReference.cache
-AuthApi/obj/Debug/net9.0/AuthApi.GeneratedMSBuildEditorConfig.editorconfig
-AuthApi/obj/Debug/net9.0/AuthApi.csproj.AssemblyReference.cache
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfo.cs
-AuthApi/obj/Debug/net9.0/AuthApi.AssemblyInfoInputs.cache
-AuthApi/obj/Debug/net9.0/AuthApi.csproj.AssemblyReference.cache
-AuthApi/obj/Debug/net9.0/AuthApi.GeneratedMSBuildEditorConfig.editorconfig
-AuthApi/obj/Debug/net9.0/AuthApi.GlobalUsings.g.cs
+# Visual Studio / Rider / VS Code
+.vs/
+*.suo
+*.user
+*.userprefs
+*.sln.doc
+.vscode/
+
+# Build results
+**/bin/
+**/obj/
+
+# Publish output
+**/publish/
+
+# NuGet
+# Packages
+*.nupkg
+# NuGet v2
+packages/
+
+# Rider
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Dotnet
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# EntityFramework Migrations / EF Tools
+*.Snapshot
+
+# Logs
+*.log
+
+# Test results
+TestResults/
+
+# Lock files
+global.json
+
+# Ignore local user settings and temporary files
+*.swp
+*~
+
+# Ensure we still ignore any explicit per-project files that can be large
+AuthApi/obj/
+AuthApi/bin/
+Auth.Application/obj/
+Auth.Application/bin/
+Auth.Domain/obj/
+Auth.Domain/bin/
+Auth.Infrastructure/obj/
+Auth.Infrastructure/bin/
